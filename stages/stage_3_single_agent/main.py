@@ -172,18 +172,42 @@ def check_compliance_requirements(industry: str, company_size: str) -> str:
     )
 
 
-TOOLS = [search_legal_database, calculate_penalty, check_compliance_requirements]
+@tool
+def search_case_law(keywords: str) -> str:
+    """Tìm kiếm án lệ theo từ khóa.
+
+    Args:
+        keywords: Từ khóa tìm kiếm
+    """
+    cases = {
+        "breach": "Hadley v. Baxendale (1854) - Consequential damages",
+        "negligence": "Donoghue v. Stevenson (1932) - Duty of care",
+        "contract": "Carlill v. Carbolic Smoke Ball Co (1893) - Unilateral contract",
+    }
+    for key, case in cases.items():
+        if key in keywords.lower():
+            return case
+    return "Không tìm thấy án lệ phù hợp"
+
+
+TOOLS = [
+    search_legal_database,
+    calculate_penalty,
+    check_compliance_requirements,
+    search_case_law,
+]
 
 QUESTION = (
-    "A tech startup with $5M revenue was caught sharing user data without consent "
-    "and failed to pay taxes on overseas revenue. What are all the legal consequences?"
+    "What are the legal remedies when a company breaches a contract? "
+    "Include relevant statutes and case law."
 )
 
 SYSTEM_PROMPT = (
     "You are a legal analyst agent. You have access to tools for searching legal databases, "
-    "calculating penalties, and checking compliance requirements. Use these tools to build "
-    "a comprehensive analysis. Search for each legal area separately — data privacy, tax, "
-    "and compliance. Keep your final answer under 500 words."
+    "calculating penalties, checking compliance requirements, and searching case law. "
+    "Use these tools to build a comprehensive analysis. For contract breach questions, "
+    "search the legal database and look up relevant case law. Keep your final answer "
+    "under 500 words."
 )
 
 
@@ -200,12 +224,17 @@ async def main():
     print("  3. It calls a tool (Act)")
     print("  4. It observes the result and decides next steps (Observe)")
     print("  5. It repeats until it has enough information for a final answer")
+    print("  Tools: search_legal_database, calculate_penalty,")
+    print("         check_compliance_requirements, search_case_law")
     print()
     print(f"Question: {QUESTION}")
     print("-" * 70)
 
     llm = get_llm()
-    graph = create_react_agent(model=llm, tools=TOOLS, prompt=SYSTEM_PROMPT)
+    # debug=True enables verbose agent reasoning (codelab: verbose=True)
+    graph = create_react_agent(
+        model=llm, tools=TOOLS, prompt=SYSTEM_PROMPT, debug=True
+    )
 
     inputs = {"messages": [{"role": "user", "content": QUESTION}]}
 
@@ -217,6 +246,8 @@ async def main():
             for msg in messages:
                 if hasattr(msg, "tool_calls") and msg.tool_calls:
                     print(f"\n[Step {step}] THINK + ACT (node: {node_name})")
+                    if msg.content:
+                        print(f"  Reasoning: {msg.content}")
                     for tc in msg.tool_calls:
                         print(f"  Tool: {tc['name']}")
                         print(f"  Args: {tc['args']}")
