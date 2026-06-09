@@ -1,2 +1,0 @@
-- Fullname: Võ Thanh Hiệp
-- ID: 2A202600836
