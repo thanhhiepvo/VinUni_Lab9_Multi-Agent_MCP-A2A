@@ -132,6 +132,20 @@ cp .env.example .env
 uv run python test_client.py
 ```
 
+### Gradio Web UI
+
+Chat interface for Stage 5 (requires `./start_all.sh` running):
+
+```bash
+# Terminal 1
+./start_all.sh
+
+# Terminal 2
+uv run python gradio_app.py
+```
+
+Open http://127.0.0.1:7860 in your browser.
+
 ### Run Individual Stage Demos
 
 No servers needed — each demo runs as a standalone script:
