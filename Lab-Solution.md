@@ -136,7 +136,100 @@
 
 ---
 
-## 9. Tóm tắt file đã chỉnh sửa / tạo mới
+## 9. Day08 — RAG Pipeline + Supervisor-Workers (`Lab_Assignment/`)
+
+> Thư mục `Lab_Assignment/` là project Day08 (lớp trước), **tách biệt** khỏi root Lab9.  
+> Cải tiến: **Supervisor → Workers** (3 workers) trên pipeline RAG Task 1–10.
+
+**Chủ đề:** Pháp luật Việt Nam về ma tuý + tin tức nghệ sĩ liên quan ma tuý.
+
+### 9.1 Bài cá nhân (Task 1–10) — đã có sẵn trong repo
+
+- [x] Task 1–3 — Thu thập văn bản pháp luật + crawl báo + convert Markdown (`data/landing/`, `data/standardized/`)
+- [x] Task 4 — Chunking & FAISS indexing (`data/faiss_index/`)
+- [x] Task 5 — Semantic search (`src/task5_semantic_search.py`)
+- [x] Task 6 — Lexical search BM25 (`src/task6_lexical_search.py`)
+- [x] Task 7 — Reranking RRF (`src/task7_reranking.py`)
+- [x] Task 8 — PageIndex vectorless fallback (`src/task8_pageindex_vectorless.py`)
+- [x] Task 9 — Retrieval pipeline hybrid + fallback (`src/task9_retrieval_pipeline.py`)
+- [x] Task 10 — Generation có citation + reorder (`src/task10_generation.py`)
+
+### 9.2 Cải tiến nhóm — Supervisor-Workers (≥ 3 workers)
+
+**Yêu cầu:** *Improve Agent Day08 sử dụng pattern Supervisor - Workers (ít nhất 2–3 workers)*
+
+| Agent | Vai trò | File |
+|-------|---------|------|
+| **Supervisor** | Phân tích câu hỏi → keyword routing → dispatch workers song song | `Lab_Assignment/src/agents/supervisor.py` |
+| **Worker 1 — Legal** | RAG retrieve `type=legal` → phân tích luật, hình phạt | `Lab_Assignment/src/agents/workers.py` |
+| **Worker 2 — News** | RAG retrieve `type=news` → tóm tắt tin nghệ sĩ / báo chí | `Lab_Assignment/src/agents/workers.py` |
+| **Worker 3 — Citation** | Tổng hợp output workers + citation từ context gốc | `Lab_Assignment/src/agents/workers.py` |
+
+- [x] Implement Supervisor với keyword routing (`luật`, `nghệ sĩ`, `hình phạt`, …)
+- [x] Legal + News workers chạy **song song** (`asyncio.gather`)
+- [x] Citation Worker tổng hợp + dùng `reorder_for_llm()` từ Task 10
+- [x] `retrieve_by_type()` lọc chunks theo `metadata.type` (`legal` | `news`)
+- [x] LLM client hỗ trợ OpenAI và OpenRouter (`src/agents/llm_client.py`)
+
+**Routing logic:**
+
+| Keywords | Workers |
+|----------|---------|
+| `luật`, `hình phạt`, `nghị định`, `cai nghiện`, … | Legal Worker |
+| `nghệ sĩ`, `bắt`, `tin tức`, `showbiz`, … | News Worker |
+| Không match keyword | Cả Legal + News (mặc định) |
+
+### 9.3 Gradio UI + Workflow Animation (Day08)
+
+**Files:** `Lab_Assignment/group_project/app.py`, `workflow_viz.py`
+
+- [x] Gradio chatbot trả lời có citation (port **7861**)
+- [x] Animated workflow: User → Supervisor → Legal ∥ News → Citation → Response
+- [x] Hiển thị worker summaries + số nguồn đã dùng
+- [x] Fix Gradio 6 messages format `{"role", "content"}`
+
+```bash
+cd Lab_Assignment
+cp .env.example .env   # OPENAI_API_KEY hoặc OPENROUTER_API_KEY
+
+python -m src.agents.supervisor          # CLI test
+python group_project/app.py            # UI → http://127.0.0.1:7861
+```
+
+### 9.4 So sánh Task 10 (monolith) vs Supervisor-Workers
+
+| | Task 10 (cũ) | Supervisor-Workers (mới) |
+|---|-------------|--------------------------|
+| Retrieval | 1 pipeline chung | 2 workers chuyên biệt (legal / news) |
+| LLM calls | 1 lần | 2 worker + 1 citation = 3 lần |
+| Routing | Không | Supervisor keyword routing |
+| Parallel | Không | Legal + News đồng thời |
+| UI | Không | Gradio + workflow animation |
+
+### 9.5 File Day08 đã tạo / chỉnh sửa
+
+| File | Thay đổi |
+|------|----------|
+| `Lab_Assignment/src/agents/supervisor.py` | Supervisor orchestrator (mới) |
+| `Lab_Assignment/src/agents/workers.py` | Legal, News, Citation workers (mới) |
+| `Lab_Assignment/src/agents/retrieval_utils.py` | Filter retrieve by doc type (mới) |
+| `Lab_Assignment/src/agents/llm_client.py` | OpenAI / OpenRouter client (mới) |
+| `Lab_Assignment/group_project/app.py` | Gradio UI (mới) |
+| `Lab_Assignment/group_project/workflow_viz.py` | Pipeline animation (mới) |
+| `Lab_Assignment/group_project/README.md` | Kiến trúc + hướng dẫn chạy |
+| `Lab_Assignment/requirements.txt` | Thêm `gradio` |
+| `Lab_Assignment/.env.example` | Thêm OpenRouter / `LLM_MODEL` |
+
+### 9.6 Evaluation pipeline (chưa hoàn thành)
+
+- [ ] `group_project/evaluation/golden_dataset.json` — 15+ Q&A pairs
+- [ ] `group_project/evaluation/eval_pipeline.py` — DeepEval / RAGAS
+- [ ] `group_project/evaluation/results.md` — báo cáo metrics
+- [ ] So sánh A/B (có reranking vs không / hybrid vs dense-only)
+
+---
+
+## 10. Tóm tắt file đã chỉnh sửa / tạo mới (Lab9 root)
 
 | File | Thay đổi |
 |------|----------|
@@ -156,7 +249,7 @@
 
 ---
 
-## 10. Lệnh chạy nhanh (Quick demo)
+## 11. Lệnh chạy nhanh (Quick demo)
 
 ```bash
 # Stage 1–4 (standalone, không cần server)
@@ -174,11 +267,14 @@ uv run python gradio_app.py
 
 # Dừng services
 ./stop_all.sh
+
+# Day08 Supervisor-Workers (Lab_Assignment — port 7861)
+cd Lab_Assignment && python group_project/app.py
 ```
 
 ---
 
-## 11. Ghi chú khi demo
+## 12. Ghi chú khi demo
 
 | Vấn đề | Nguyên nhân | Cách xử lý |
 |--------|-------------|------------|
@@ -186,8 +282,10 @@ uv run python gradio_app.py
 | `python: command not found` | macOS không có `python` global | Dùng `./start_all.sh` đã fix |
 | `address already in use` | Chạy `start_all.sh` nhiều lần | `./stop_all.sh` hoặc chạy lại `start_all.sh` (auto-stop) |
 | HTTP 405 trên browser | Mở agent API URL bằng GET | Dùng `test_client.py` hoặc Gradio UI (:7860), không mở :10100 trực tiếp |
-| Gradio chat error | Gradio 6 cần messages format | Đã fix trong `gradio_app.py` |
+| Gradio chat error | Gradio 6 cần messages format | Đã fix trong `gradio_app.py` và `Lab_Assignment/group_project/app.py` |
+| Day08 FAISS not found | Chưa chạy Task 4 | `cd Lab_Assignment && python -m src.task4_chunking_indexing` |
+| Day08 LLM error | Thiếu API key | Điền `OPENAI_API_KEY` hoặc `OPENROUTER_API_KEY` trong `Lab_Assignment/.env` |
 
 ---
 
-*Hoàn thành toàn bộ CODELAB Phần 1–6 + Gradio UI. Chờ hướng dẫn tiếp theo.*
+*Hoàn thành: CODELAB Lab9 Phần 1–6 + Gradio UI (root) + Day08 Supervisor-Workers (`Lab_Assignment/`).*

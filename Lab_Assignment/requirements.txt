@@ -30,7 +30,7 @@ openai>=1.30.0
 
 # Group project - UI
 streamlit>=1.35.0
-# gradio>=4.30.0         # Alternative
+gradio>=5.0.0
 # chainlit>=1.0.0        # Alternative for chatbot
 
 # Group project - Evaluation (choose one)
