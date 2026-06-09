@@ -76,6 +76,19 @@ async def main() -> None:
                             p = part.root if hasattr(part, "root") else part
                             if hasattr(p, "text"):
                                 result_text += p.text
+                # Failed task — surface the agent error message
+                elif (
+                    hasattr(result, "status")
+                    and result.status
+                    and getattr(result.status, "state", None) == "failed"
+                    and getattr(result.status, "message", None)
+                ):
+                    msg = result.status.message
+                    if hasattr(msg, "parts") and msg.parts:
+                        for part in msg.parts:
+                            p = part.root if hasattr(part, "root") else part
+                            if hasattr(p, "text"):
+                                result_text += p.text
                 # Message with parts
                 elif hasattr(result, "parts") and result.parts:
                     for part in result.parts:
@@ -88,6 +101,13 @@ async def main() -> None:
             print("=" * 60)
             print(result_text)
             print("=" * 60)
+            if "Error code: 402" in result_text:
+                print()
+                print("HINT: OpenRouter free credits are low. Add credits at")
+                print("https://openrouter.ai/settings/credits or set in .env:")
+                print("  OPENROUTER_MAX_TOKENS=512")
+                print("Then restart services: Ctrl+C on start_all.sh, then ./start_all.sh")
+                sys.exit(1)
         else:
             print("No text response received. Raw response:")
             print(response)

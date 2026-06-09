@@ -18,5 +18,5 @@ def get_llm() -> ChatOpenAI:
         temperature=0.3,
         # Cap completion tokens so OpenRouter does not reserve the model's full
         # default (e.g. 64k) against limited free-tier credits.
-        max_tokens=int(os.getenv("OPENROUTER_MAX_TOKENS", "2048")),
+        max_tokens=int(os.getenv("OPENROUTER_MAX_TOKENS", "1024")),
     )
